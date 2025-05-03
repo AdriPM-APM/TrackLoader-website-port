@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4CAF50">
     <title>Modern Audio Player</title>
     <style>
         :root {
@@ -235,11 +238,39 @@
                 opacity: 1;
             }
         }
+
+        .error-message {
+            color: var(--remove-color);
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 10px;
+            display: none;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+        }
     </style>
 </head>
 <body>
     <div class="player-container">
         <h2 class="player-title">Audio Player</h2>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="loading" id="loadingMessage">Loading</div>
         
         <div class="file-input-container">
             <input type="file" id="fileInput" accept="audio/*" multiple>
@@ -280,6 +311,8 @@
                 this.progressUpdateInterval = null;
                 this.lastProgressUpdate = 0;
                 this.progressUpdateThrottle = 100; // ms
+                this.errorMessage = document.getElementById('errorMessage');
+                this.loadingMessage = document.getElementById('loadingMessage');
 
                 // DOM Elements
                 this.playBtn = document.getElementById('playBtn');
@@ -292,7 +325,34 @@
                 this.playlistContainer = document.querySelector('.playlist');
                 this.fileInput = document.getElementById('fileInput');
 
+                // Check for Android
+                this.isAndroid = /Android/i.test(navigator.userAgent);
+
+                // Initialize audio context
+                this.initAudioContext();
+
                 // Event Listeners with passive options for better performance
+                this.setupEventListeners();
+            }
+
+            async initAudioContext() {
+                try {
+                    // Create audio context
+                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioContext = new AudioContext();
+                    
+                    // Resume audio context on user interaction
+                    document.addEventListener('click', () => {
+                        if (this.audioContext.state === 'suspended') {
+                            this.audioContext.resume();
+                        }
+                    }, { once: true });
+                } catch (error) {
+                    this.showError('Audio initialization failed: ' + error.message);
+                }
+            }
+
+            setupEventListeners() {
                 this.playBtn.addEventListener('click', () => this.togglePlay(), { passive: true });
                 this.prevBtn.addEventListener('click', () => this.playPrevious(), { passive: true });
                 this.nextBtn.addEventListener('click', () => this.playNext(), { passive: true });
@@ -310,18 +370,169 @@
                 }, { passive: true });
 
                 this.audio.addEventListener('ended', () => this.playNext(), { passive: true });
+                
+                // Error handling
+                this.audio.addEventListener('error', (e) => {
+                    this.showError('Error playing audio: ' + (e.target.error?.message || 'Unknown error'));
+                });
+
+                // Handle visibility change
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && this.isPlaying) {
+                        this.pause();
+                    }
+                });
             }
 
-            handleFileSelect(event) {
-                const files = event.target.files;
-                for (let file of files) {
-                    if (file.type.startsWith('audio/')) {
-                        const url = URL.createObjectURL(file);
-                        this.addTrack(file.name, url);
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    this.errorMessage.style.display = 'none';
+                }, 5000);
+            }
+
+            showLoading(show) {
+                this.loadingMessage.style.display = show ? 'block' : 'none';
+            }
+
+            async handleFileSelect(event) {
+                try {
+                    this.showLoading(true);
+                    const files = event.target.files;
+                    
+                    for (let file of files) {
+                        if (file.type.startsWith('audio/')) {
+                            try {
+                                // Create object URL
+                                const url = URL.createObjectURL(file);
+                                
+                                // Test if audio can be played
+                                const testAudio = new Audio();
+                                testAudio.src = url;
+                                
+                                await new Promise((resolve, reject) => {
+                                    testAudio.addEventListener('canplaythrough', resolve, { once: true });
+                                    testAudio.addEventListener('error', reject, { once: true });
+                                    testAudio.load();
+                                });
+                                
+                                this.addTrack(file.name, url);
+                            } catch (error) {
+                                this.showError(`Error loading ${file.name}: ${error.message}`);
+                            }
+                        }
                     }
+                    
+                    if (this.playlist.length > 0 && !this.isPlaying) {
+                        await this.loadTrack();
+                    }
+                } catch (error) {
+                    this.showError('Error processing files: ' + error.message);
+                } finally {
+                    this.showLoading(false);
                 }
-                if (this.playlist.length > 0 && !this.isPlaying) {
-                    this.loadTrack();
+            }
+
+            async loadTrack() {
+                if (this.playlist.length === 0) return;
+                
+                try {
+                    this.showLoading(true);
+                    const track = this.playlist[this.currentTrack];
+                    
+                    // Reset audio
+                    this.audio.pause();
+                    this.audio.src = '';
+                    
+                    // Set new source
+                    this.audio.src = track.src;
+                    this.nowPlaying.textContent = track.title;
+                    
+                    // Load the audio
+                    await new Promise((resolve, reject) => {
+                        this.audio.addEventListener('canplaythrough', resolve, { once: true });
+                        this.audio.addEventListener('error', reject, { once: true });
+                        this.audio.load();
+                    });
+                    
+                    this.updatePlaylistUI();
+                } catch (error) {
+                    this.showError('Error loading track: ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async play() {
+                try {
+                    if (this.audioContext?.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                    await this.audio.play();
+                    this.isPlaying = true;
+                    this.playBtn.textContent = '⏸';
+                } catch (error) {
+                    this.showError('Error playing audio: ' + error.message);
+                    this.isPlaying = false;
+                    this.playBtn.textContent = '▶';
+                }
+            }
+
+            togglePlay() {
+                if (this.playlist.length === 0) return;
+                
+                if (this.isPlaying) {
+                    this.pause();
+                } else {
+                    this.play();
+                }
+            }
+
+            pause() {
+                this.audio.pause();
+                this.isPlaying = false;
+                this.playBtn.textContent = '▶';
+            }
+
+            playNext() {
+                if (this.playlist.length === 0) return;
+                
+                this.currentTrack = (this.currentTrack + 1) % this.playlist.length;
+                this.loadTrack();
+                this.play();
+            }
+
+            playPrevious() {
+                if (this.playlist.length === 0) return;
+                
+                this.currentTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
+                this.loadTrack();
+                this.play();
+            }
+
+            setVolume(value) {
+                this.audio.volume = value;
+            }
+
+            seek(e) {
+                if (this.playlist.length === 0) return;
+                
+                const percent = e.offsetX / this.progressContainer.offsetWidth;
+                this.audio.currentTime = percent * this.audio.duration;
+            }
+
+            updateProgress() {
+                if (this.playlist.length === 0) return;
+                
+                const percent = (this.audio.currentTime / this.audio.duration) * 100;
+                this.progressBar.style.transform = `translateX(${percent - 100}%)`;
+            }
+
+            updatePlaylistUI() {
+                const items = this.playlistContainer.children;
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.toggle('active', i === this.currentTrack);
                 }
             }
 
@@ -373,82 +584,20 @@
                 
                 this.updatePlaylistUI();
             }
-
-            loadTrack() {
-                if (this.playlist.length === 0) return;
-                
-                const track = this.playlist[this.currentTrack];
-                this.audio.src = track.src;
-                this.nowPlaying.textContent = track.title;
-                this.updatePlaylistUI();
-            }
-
-            togglePlay() {
-                if (this.playlist.length === 0) return;
-                
-                if (this.isPlaying) {
-                    this.pause();
-                } else {
-                    this.play();
-                }
-            }
-
-            play() {
-                this.audio.play();
-                this.isPlaying = true;
-                this.playBtn.textContent = '⏸';
-            }
-
-            pause() {
-                this.audio.pause();
-                this.isPlaying = false;
-                this.playBtn.textContent = '▶';
-            }
-
-            playNext() {
-                if (this.playlist.length === 0) return;
-                
-                this.currentTrack = (this.currentTrack + 1) % this.playlist.length;
-                this.loadTrack();
-                this.play();
-            }
-
-            playPrevious() {
-                if (this.playlist.length === 0) return;
-                
-                this.currentTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
-                this.loadTrack();
-                this.play();
-            }
-
-            setVolume(value) {
-                this.audio.volume = value;
-            }
-
-            seek(e) {
-                if (this.playlist.length === 0) return;
-                
-                const percent = e.offsetX / this.progressContainer.offsetWidth;
-                this.audio.currentTime = percent * this.audio.duration;
-            }
-
-            updateProgress() {
-                if (this.playlist.length === 0) return;
-                
-                const percent = (this.audio.currentTime / this.audio.duration) * 100;
-                this.progressBar.style.transform = `translateX(${percent - 100}%)`;
-            }
-
-            updatePlaylistUI() {
-                const items = this.playlistContainer.children;
-                for (let i = 0; i < items.length; i++) {
-                    items[i].classList.toggle('active', i === this.currentTrack);
-                }
-            }
         }
 
         // Initialize the player
         const player = new AudioPlayer();
+
+        // Handle Android back button
+        if (window.Android) {
+            document.addEventListener('backbutton', (e) => {
+                if (player.isPlaying) {
+                    e.preventDefault();
+                    player.pause();
+                }
+            });
+        }
     </script>
 </body>
 </html>
