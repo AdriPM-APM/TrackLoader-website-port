@@ -1,13 +1,208 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- ... (estilos iguales que antes) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2E2E2E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Media Player</title>
     <style>
-        /* Todos los estilos anteriores se mantienen igual */
+        :root {
+            --primary: #00ff88;
+            --background: #1a1a1a;
+            --surface: #2d2d2d;
+            --text: #ffffff;
+            --error: #ff4444;
+            --gradient: linear-gradient(135deg, #00ff88 0%, #00a3ff 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .player-container {
+            background: var(--surface);
+            width: 95%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .player-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .player-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin: 1.5rem 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient);
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 3px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        #playBtn {
+            background: var(--gradient);
+            color: #000;
+            box-shadow: 0 8px 24px rgba(0,255,136,0.3);
+        }
+
+        .load-btn {
+            background: var(--gradient);
+            color: #000;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: block;
+            margin: 1rem auto;
+            width: fit-content;
+        }
+
+        .load-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
+        }
+
+        #urlInput {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 0.8rem;
+            border-radius: 50px;
+            color: white;
+            width: 70%;
+            outline: none;
+        }
+
+        .playlist {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+            margin-top: 1.5rem;
+        }
+
+        .playlist-item {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            margin: 0.5rem 0;
+        }
+
+        .playlist-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .playlist-item.active {
+            background: rgba(0,255,157,0.1);
+            color: var(--primary);
+        }
+
+        .error-message {
+            color: var(--error);
+            text-align: center;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: none;
+            background: rgba(255,68,68,0.1);
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
-    <!-- ... (HTML igual que antes) ... -->
+    <div class="player-container">
+        <div class="player-header">
+            <h1 class="player-title">Neon Player</h1>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <input type="text" id="urlInput" placeholder="Pega URL de audio/video">
+                <button class="load-btn" onclick="player.handleUrl()">
+                    🎵 Cargar desde URL
+                </button>
+            </div>
+            <button class="load-btn" onclick="document.getElementById('fileInput').click()">
+                📁 Cargar Archivo
+            </button>
+        </div>
+
+        <input type="file" id="fileInput" accept="audio/*,video/*" multiple hidden>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="prevBtn">⏮</button>
+            <button class="control-btn" id="playBtn">▶</button>
+            <button class="control-btn" id="nextBtn">⏭</button>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="playlist" id="playlist"></div>
+    </div>
 
     <script>
         class AudioPlayer {
@@ -22,13 +217,13 @@
                 this.currentMedia = null;
                 this.youtubeInterval = null;
 
-                // Elementos del DOM (igual que antes)
-                
-                // Verificar carga de la API de YouTube
-                if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
-                    console.error('YouTube API no está cargada');
-                    this.showError('Error: YouTube Player API no está disponible');
-                }
+                // Elementos del DOM
+                this.playBtn = document.getElementById('playBtn');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.playlistContainer = document.getElementById('playlist');
+                this.fileInput = document.getElementById('fileInput');
+                this.errorMessage = document.getElementById('errorMessage');
 
                 this.initialize();
             }
@@ -37,7 +232,32 @@
                 this.setupEventListeners();
             }
 
-            // ... (setupEventListeners y otros métodos iguales hasta handleUrl) ...
+            setupEventListeners() {
+                this.playBtn.addEventListener('click', () => this.togglePlay());
+                this.progressContainer.addEventListener('click', (e) => this.handleSeek(e));
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.audio.addEventListener('timeupdate', () => this.updateProgress());
+                this.audio.addEventListener('ended', () => this.playNext());
+                document.getElementById('prevBtn').addEventListener('click', () => this.playPrev());
+                document.getElementById('nextBtn').addEventListener('click', () => this.playNext());
+            }
+
+            async handleFileSelect(event) {
+                try {
+                    const files = Array.from(event.target.files);
+                    for (const file of files) {
+                        if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+                            const url = URL.createObjectURL(file);
+                            const type = file.type.startsWith('video/') ? 'video' : 'audio';
+                            await this.validateMediaFile(url);
+                            this.addToPlaylist(file.name, url, type);
+                        }
+                    }
+                    if (this.playlist.length > 0) this.loadTrack();
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
 
             async handleUrl() {
                 try {
@@ -49,10 +269,14 @@
                     if (youtubeMatch) {
                         type = 'youtube';
                         videoId = youtubeMatch[1];
+                    } else if (url.match(/\.(mp4|webm|mkv|mp3|wav|ogg|m4a|flac)/i)) {
+                        type = url.match(/\.(mp4|webm|mkv)/i) ? 'video' : 'audio';
                     } else {
-                        // Validación para otros tipos (igual que antes)
+                        throw new Error('Formato no compatible. Usa mp3, wav, ogg, m4a, flac, mp4, webm o mkv.');
                     }
 
+                    if (type !== 'youtube') await this.validateMediaFile(url);
+                    
                     const title = type === 'youtube' ? `YouTube Video (${videoId})` : url.split('/').pop();
                     this.addToPlaylist(title, url, type, videoId);
 
@@ -61,6 +285,34 @@
                 } catch (error) {
                     this.showError(error.message);
                 }
+            }
+
+            async validateMediaFile(url) {
+                return new Promise((resolve, reject) => {
+                    const media = url.match(/\.(mp4|webm|mkv)$/i) ? document.createElement('video') : new Audio();
+                    media.src = url;
+
+                    const timeout = setTimeout(() => {
+                        media.src = '';
+                        reject(new Error('Tiempo de espera agotado al validar el archivo.'));
+                    }, 10000);
+
+                    media.addEventListener('canplaythrough', () => {
+                        clearTimeout(timeout);
+                        media.src = '';
+                        resolve();
+                    }, { once: true });
+
+                    media.addEventListener('error', (e) => {
+                        clearTimeout(timeout);
+                        const errorMsg = e.target.error.code === 4
+                            ? 'No se puede reproducir: el servidor no permite acceso CORS o el formato no es compatible.'
+                            : `Error de carga: ${e.target.error.message}`;
+                        reject(new Error(errorMsg));
+                    }, { once: true });
+
+                    media.load();
+                });
             }
 
             async loadTrack() {
@@ -72,7 +324,7 @@
                     if (track.type === 'youtube') {
                         if (!track.player) {
                             const playerDiv = document.createElement('div');
-                            playerDiv.id = `youtube-player-${Date.now()}`;
+                            playerDiv.id = `youtube-${Date.now()}`;
                             playerDiv.style.display = 'none';
                             document.body.appendChild(playerDiv);
 
@@ -94,25 +346,24 @@
                                     'onStateChange': (event) => {
                                         if (event.data === YT.PlayerState.PLAYING) {
                                             this.isPlaying = true;
-                                            this.youtubeInterval = setInterval(() => {
-                                                this.updateProgress();
-                                            }, 1000);
+                                            this.youtubeInterval = setInterval(() => this.updateProgress(), 1000);
                                         } else if (event.data === YT.PlayerState.PAUSED) {
                                             this.isPlaying = false;
                                         } else if (event.data === YT.PlayerState.ENDED) {
                                             this.playNext();
                                         }
                                     },
-                                    'onError': (event) => {
-                                        this.handleYoutubeError(event.data);
-                                    }
+                                    'onError': (event) => this.handleYoutubeError(event.data)
                                 }
                             });
-                        } else {
-                            this.currentMedia = track.player;
                         }
+                        this.currentMedia = track.player;
                     } else {
-                        // Código para otros tipos igual que antes
+                        this.audio.src = track.url;
+                        this.currentMedia = this.audio;
+                        await this.audio.play();
+                        this.isPlaying = true;
+                        this.playBtn.textContent = '⏸';
                     }
                 } catch (error) {
                     this.showError('Error al cargar: ' + error.message);
@@ -121,76 +372,132 @@
             }
 
             handleYoutubeError(errorCode) {
-                let errorMsg = 'Error de YouTube: ';
-                switch (errorCode) {
-                    case 2: errorMsg += 'ID de video inválido'; break;
-                    case 5: errorMsg += 'Error de HTML5'; break;
-                    case 100: errorMsg += 'Video no encontrado'; break;
-                    case 101: 
-                    case 150: errorMsg += 'Reproducción restringida'; break;
-                    default: errorMsg += `Código ${errorCode}`;
-                }
-                this.showError(errorMsg);
+                const errors = {
+                    2: 'ID de video inválido',
+                    5: 'Error de HTML5',
+                    100: 'Video no encontrado',
+                    101: 'Reproducción restringida',
+                    150: 'Reproducción restringida'
+                };
+                this.showError(`Error de YouTube: ${errors[errorCode] || `Código ${errorCode}`}`);
                 this.playNext();
-            }
-
-            play() {
-                if (!this.isPlaying && this.currentMedia) {
-                    if (this.currentMedia instanceof HTMLMediaElement) {
-                        this.currentMedia.play();
-                    } else if (typeof this.currentMedia.playVideo === 'function') {
-                        this.currentMedia.playVideo();
-                        this.isPlaying = true;
-                        this.playBtn.textContent = '⏸';
-                    }
-                }
-            }
-
-            pause() {
-                if (this.isPlaying && this.currentMedia) {
-                    if (this.currentMedia instanceof HTMLMediaElement) {
-                        this.currentMedia.pause();
-                    } else if (typeof this.currentMedia.pauseVideo === 'function') {
-                        this.currentMedia.pauseVideo();
-                        this.isPlaying = false;
-                        this.playBtn.textContent = '▶';
-                    }
-                    if (this.youtubeInterval) {
-                        clearInterval(this.youtubeInterval);
-                        this.youtubeInterval = null;
-                    }
-                }
             }
 
             updateProgress() {
                 if (this.currentMedia instanceof HTMLMediaElement) {
-                    // Código original
-                } else if (this.currentMedia && typeof this.currentMedia.getCurrentTime === 'function') {
+                    const progress = (this.currentMedia.currentTime / this.currentMedia.duration) * 100;
+                    this.progressBar.style.width = `${progress}%`;
+                } else if (this.currentMedia?.getCurrentTime) {
                     const duration = this.currentMedia.getDuration();
                     const currentTime = this.currentMedia.getCurrentTime();
                     if (duration > 0) {
-                        const progress = (currentTime / duration) * 100;
-                        this.progressBar.style.width = `${progress}%`;
+                        this.progressBar.style.width = `${(currentTime / duration) * 100}%`;
                     }
                 }
             }
 
-            // ... (otros métodos se mantienen igual) ...
+            handleSeek(e) {
+                const rect = this.progressContainer.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    this.currentMedia.currentTime = percent * this.currentMedia.duration;
+                } else if (this.currentMedia?.seekTo) {
+                    this.currentMedia.seekTo(percent * this.currentMedia.getDuration(), true);
+                }
+            }
+
+            togglePlay() {
+                this.isPlaying ? this.pause() : this.play();
+            }
+
+            play() {
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    this.currentMedia.play();
+                } else if (this.currentMedia?.playVideo) {
+                    this.currentMedia.playVideo();
+                }
+                this.isPlaying = true;
+                this.playBtn.textContent = '⏸';
+            }
+
+            pause() {
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    this.currentMedia.pause();
+                } else if (this.currentMedia?.pauseVideo) {
+                    this.currentMedia.pauseVideo();
+                }
+                this.isPlaying = false;
+                this.playBtn.textContent = '▶';
+                if (this.youtubeInterval) clearInterval(this.youtubeInterval);
+            }
+
+            playNext() {
+                this.pause();
+                this.currentTrack = (this.currentTrack + 1) % this.playlist.length;
+                this.loadTrack();
+            }
+
+            playPrev() {
+                this.pause();
+                this.currentTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
+                this.loadTrack();
+            }
+
+            addToPlaylist(title, url, type, videoId = null) {
+                const track = { title, url, type, videoId, player: null };
+                this.playlist.push(track);
+
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                item.innerHTML = `
+                    <span>${title}</span>
+                    <span class="remove-btn">🗑️</span>
+                `;
+
+                item.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeTrack(this.playlist.indexOf(track));
+                });
+
+                item.addEventListener('click', () => {
+                    this.currentTrack = this.playlist.indexOf(track);
+                    this.loadTrack();
+                });
+
+                this.playlistContainer.appendChild(item);
+            }
+
+            removeTrack(index) {
+                if (index === this.currentTrack) this.pause();
+                const track = this.playlist[index];
+                if (track.type === 'youtube' && track.player) {
+                    track.player.destroy();
+                    document.getElementById(track.player.a.id).remove();
+                }
+                this.playlist.splice(index, 1);
+                this.playlistContainer.children[index].remove();
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                setTimeout(() => this.errorMessage.style.display = 'none', 5000);
+            }
         }
 
-        // Cargar YouTube API correctamente
+        // Cargar YouTube API
         let tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         let firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        // Inicialización después de cargar la API
+        // Inicialización
         let player;
         function onYouTubeIframeAPIReady() {
             player = new AudioPlayer();
             window.player = player;
         }
     </script>
-    <!-- ... (resto del código igual) ... -->
 </body>
 </html>
