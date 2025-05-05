@@ -282,12 +282,10 @@
                     const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
                     if (youtubeMatch) {
                         type = 'youtube';
-                    } else if (url.match(/\.(mp4|webm)/i)) {
-                        type = 'video';
-                    } else if (url.match(/\.(mp3|wav|ogg)/i)) {
-                        type = 'audio';
+                    } else if (url.match(/\.(mp4|webm|mkv|mp3|wav|ogg|m4a|flac)/i)) {
+                        type = url.match(/\.(mp4|webm|mkv)/i) ? 'video' : 'audio';
                     } else {
-                        throw new Error('Formato no compatible');
+                        throw new Error('Formato no compatible. Usa mp3, wav, ogg, m4a, flac, mp4, webm o mkv.');
                     }
 
                     if (type !== 'youtube') {
@@ -306,19 +304,39 @@
 
             async validateMediaFile(url) {
                 return new Promise((resolve, reject) => {
-                    const media = url.match(/\.(mp4|webm)$/i) ? document.createElement('video') : new Audio();
+                    const media = url.match(/\.(mp4|webm|mkv)$/i) ? document.createElement('video') : new Audio();
                     media.src = url;
-                    media.addEventListener('canplaythrough', () => resolve(), { once: true });
-                    media.addEventListener('error', (e) => {
-                        reject(new Error(`Error de carga: ${e.target.error.message}`));
+
+                    // Establecer un timeout para evitar esperas indefinidas
+                    const timeout = setTimeout(() => {
+                        media.src = '';
+                        reject(new Error('Tiempo de espera agotado al validar el archivo.'));
+                    }, 10000); // 10 segundos
+
+                    media.addEventListener('canplaythrough', () => {
+                        clearTimeout(timeout);
+                        media.src = ''; // Liberar recursos
+                        resolve();
                     }, { once: true });
+
+                    media.addEventListener('error', (e) => {
+                        clearTimeout(timeout);
+                        const errorMsg = e.target.error.code === 4
+                            ? 'No se puede reproducir: el servidor no permite acceso CORS o el formato no es compatible.'
+                            : `Error de carga: ${e.target.error.message}`;
+                        reject(new Error(errorMsg));
+                    }, { once: true });
+
                     media.load();
                 });
             }
 
             async loadTrack() {
                 try {
+                    if (this.playlist.length === 0) return;
                     const track = this.playlist[this.currentTrack];
+                    this.pause(); // Asegurar que cualquier reproducción anterior esté detenida
+
                     if (track.type === 'youtube') {
                         if (!track.player) {
                             const playerDiv = document.createElement('div');
@@ -335,12 +353,32 @@
                                         this.playBtn.textContent = '⏸';
                                     },
                                     'onStateChange': (event) => {
-                                        if (event.data == YT.PlayerState.ENDED) {
+                                        if (event.data === YT.PlayerState.ENDED) {
                                             this.playNext();
                                         }
                                     },
-                                    'onError': (error) => {
-                                        this.showError('Error de YouTube: ' + error.data);
+                                    'onError': (event) => {
+                                        let errorMsg = 'Error de YouTube: ';
+                                        switch (event.data) {
+                                            case 150:
+                                            case 101:
+                                                errorMsg += 'Este video está restringido (copyright o configuración del propietario).';
+                                                break;
+                                            case 100:
+                                                errorMsg += 'Video no encontrado.';
+                                                break;
+                                            default:
+                                                errorMsg += `Código de error ${event.data}.`;
+                                        }
+                                        this.showError(errorMsg);
+                                        // Destruir el reproductor fallido
+                                        if (track.player) {
+                                            track.player.destroy();
+                                            track.player = null;
+                                            document.getElementById(playerDiv.id).remove();
+                                        }
+                                        // Avanzar al siguiente track
+                                        this.playNext();
                                     }
                                 }
                             });
@@ -355,6 +393,8 @@
                     }
                 } catch (error) {
                     this.showError('Error al cargar: ' + error.message);
+                    // Avanzar al siguiente track si falla la carga
+                    this.playNext();
                 }
             }
 
@@ -475,6 +515,12 @@
 
             removeTrack(index) {
                 if (index === this.currentTrack) this.pause();
+                const track = this.playlist[index];
+                if (track.type === 'youtube' && track.player) {
+                    track.player.destroy();
+                    const playerDiv = document.getElementById(`youtube-player-${index}`);
+                    if (playerDiv) playerDiv.remove();
+                }
                 this.playlist.splice(index, 1);
                 this.playlistContainer.children[index].remove();
             }
@@ -492,7 +538,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const player = new AudioPlayer();
-                window.player = player; // Hacer que la instancia sea accesible globalmente para los botones
+                window.player = player; // Hacer que la instancia sea accesible globalmente
             } catch (error) {
                 console.error('Error al inicializar el reproductor:', error);
             }
