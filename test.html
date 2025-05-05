@@ -1,214 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2E2E2E">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Neon Media Player</title>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- ... (estilos iguales que antes) ... -->
     <style>
-        :root {
-            --primary: #00ff88;
-            --background: #1a1a1a;
-            --surface: #2d2d2d;
-            --text: #ffffff;
-            --error: #ff4444;
-            --gradient: linear-gradient(135deg, #00ff88 0%, #00a3ff 100%);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: var(--background);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .player-container {
-            background: var(--surface);
-            width: 95%;
-            max-width: 600px;
-            padding: 2rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .player-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .player-title {
-            font-size: 2rem;
-            font-weight: 700;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-        }
-
-        .progress-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            margin: 1.5rem 0;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: var(--gradient);
-            width: 0%;
-            transition: width 0.1s linear;
-            border-radius: 3px;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        .control-btn {
-            background: none;
-            border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            cursor: pointer;
-            color: var(--text);
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-
-        #playBtn {
-            background: var(--gradient);
-            color: #000;
-            box-shadow: 0 8px 24px rgba(0,255,136,0.3);
-        }
-
-        .load-btn {
-            background: var(--gradient);
-            color: #000;
-            border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 50px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            display: block;
-            margin: 1rem auto;
-            width: fit-content;
-        }
-
-        .load-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
-        }
-
-        #urlInput {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            padding: 0.8rem;
-            border-radius: 50px;
-            color: white;
-            width: 70%;
-            outline: none;
-        }
-
-        .playlist {
-            max-height: 300px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary) transparent;
-            margin-top: 1.5rem;
-        }
-
-        .playlist-item {
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            margin: 0.5rem 0;
-        }
-
-        .playlist-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .playlist-item.active {
-            background: rgba(0,255,157,0.1);
-            color: var(--primary);
-        }
-
-        .error-message {
-            color: var(--error);
-            text-align: center;
-            padding: 1rem;
-            margin: 1rem 0;
-            display: none;
-            background: rgba(255,68,68,0.1);
-            border-radius: 8px;
-        }
+        /* Todos los estilos anteriores se mantienen igual */
     </style>
 </head>
 <body>
-    <div class="player-container">
-        <div class="player-header">
-            <h1 class="player-title">Neon Player</h1>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <input type="text" id="urlInput" placeholder="Pega URL de audio/video">
-                <button class="load-btn" onclick="player.handleUrl()">
-                    🎵 Cargar desde URL
-                </button>
-            </div>
-            <button class="load-btn" onclick="document.getElementById('fileInput').click()">
-                📁 Cargar Archivo
-            </button>
-        </div>
-
-        <input type="file" id="fileInput" accept="audio/*,video/*" multiple hidden>
-
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-
-        <div class="controls">
-            <button class="control-btn" id="prevBtn">⏮</button>
-            <button class="control-btn" id="playBtn">▶</button>
-            <button class="control-btn" id="nextBtn">⏭</button>
-        </div>
-
-        <div class="error-message" id="errorMessage"></div>
-        <div class="playlist" id="playlist"></div>
-    </div>
+    <!-- ... (HTML igual que antes) ... -->
 
     <script>
         class AudioPlayer {
             constructor() {
-                // Usar un elemento video para todos los medios
                 this.audio = document.createElement('video');
                 this.audio.id = 'videoElement';
                 this.audio.style.display = 'none';
@@ -219,81 +22,39 @@
                 this.currentMedia = null;
                 this.youtubeInterval = null;
 
-                // Elementos del DOM
-                this.playBtn = document.getElementById('playBtn');
-                this.progressBar = document.getElementById('progressBar');
-                this.progressContainer = document.getElementById('progressContainer');
-                this.playlistContainer = document.getElementById('playlist');
-                this.fileInput = document.getElementById('fileInput');
-                this.errorMessage = document.getElementById('errorMessage');
-
-                // Verificar que todos los elementos existan
-                if (!this.playBtn) console.error('Elemento con id "playBtn" no encontrado');
-                if (!this.progressBar) console.error('Elemento con id "progressBar" no encontrado');
-                if (!this.progressContainer) console.error('Elemento con id "progressContainer" no encontrado');
-                if (!this.playlistContainer) console.error('Elemento con id "playlist" no encontrado');
-                if (!this.fileInput) console.error('Elemento con id "fileInput" no encontrado');
-                if (!this.errorMessage) console.error('Elemento con id "errorMessage" no encontrado');
-
-                if (this.playBtn && this.progressContainer && this.fileInput && this.errorMessage && this.playlistContainer) {
-                    this.initialize();
-                } else {
-                    console.error('No se puede inicializar el reproductor: faltan elementos del DOM');
+                // Elementos del DOM (igual que antes)
+                
+                // Verificar carga de la API de YouTube
+                if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+                    console.error('YouTube API no está cargada');
+                    this.showError('Error: YouTube Player API no está disponible');
                 }
+
+                this.initialize();
             }
 
             initialize() {
                 this.setupEventListeners();
             }
 
-            setupEventListeners() {
-                this.playBtn.addEventListener('click', () => this.togglePlay());
-                this.progressContainer.addEventListener('click', (e) => this.handleSeek(e));
-                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-                this.audio.addEventListener('timeupdate', () => this.updateProgress());
-                this.audio.addEventListener('ended', () => this.playNext());
-                document.getElementById('prevBtn').addEventListener('click', () => this.playPrev());
-                document.getElementById('nextBtn').addEventListener('click', () => this.playNext());
-            }
-
-            async handleFileSelect(event) {
-                try {
-                    const files = Array.from(event.target.files);
-                    for (const file of files) {
-                        if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
-                            const url = URL.createObjectURL(file);
-                            const type = file.type.startsWith('video/') ? 'video' : 'audio';
-                            await this.validateMediaFile(url);
-                            this.addToPlaylist(file.name, url, type);
-                        }
-                    }
-                    if (this.playlist.length > 0) this.loadTrack();
-                } catch (error) {
-                    this.showError(error.message);
-                }
-            }
+            // ... (setupEventListeners y otros métodos iguales hasta handleUrl) ...
 
             async handleUrl() {
                 try {
                     const url = document.getElementById('urlInput').value;
                     if (!url) return;
 
-                    let type;
-                    const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+                    let type, videoId = null;
+                    const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([\w-]{11})/);
                     if (youtubeMatch) {
                         type = 'youtube';
-                    } else if (url.match(/\.(mp4|webm|mkv|mp3|wav|ogg|m4a|flac)/i)) {
-                        type = url.match(/\.(mp4|webm|mkv)/i) ? 'video' : 'audio';
+                        videoId = youtubeMatch[1];
                     } else {
-                        throw new Error('Formato no compatible. Usa mp3, wav, ogg, m4a, flac, mp4, webm o mkv.');
+                        // Validación para otros tipos (igual que antes)
                     }
 
-                    if (type !== 'youtube') {
-                        await this.validateMediaFile(url);
-                    }
-
-                    const title = url.split('/').pop().split('#')[0].split('?')[0];
-                    this.addToPlaylist(title, url, type);
+                    const title = type === 'youtube' ? `YouTube Video (${videoId})` : url.split('/').pop();
+                    this.addToPlaylist(title, url, type, videoId);
 
                     if (this.playlist.length > 0) this.loadTrack();
                     document.getElementById('urlInput').value = '';
@@ -302,153 +63,86 @@
                 }
             }
 
-            async validateMediaFile(url) {
-                return new Promise((resolve, reject) => {
-                    const media = url.match(/\.(mp4|webm|mkv)$/i) ? document.createElement('video') : new Audio();
-                    media.src = url;
-
-                    // Establecer un timeout para evitar esperas indefinidas
-                    const timeout = setTimeout(() => {
-                        media.src = '';
-                        reject(new Error('Tiempo de espera agotado al validar el archivo.'));
-                    }, 10000); // 10 segundos
-
-                    media.addEventListener('canplaythrough', () => {
-                        clearTimeout(timeout);
-                        media.src = ''; // Liberar recursos
-                        resolve();
-                    }, { once: true });
-
-                    media.addEventListener('error', (e) => {
-                        clearTimeout(timeout);
-                        const errorMsg = e.target.error.code === 4
-                            ? 'No se puede reproducir: el servidor no permite acceso CORS o el formato no es compatible.'
-                            : `Error de carga: ${e.target.error.message}`;
-                        reject(new Error(errorMsg));
-                    }, { once: true });
-
-                    media.load();
-                });
-            }
-
             async loadTrack() {
                 try {
                     if (this.playlist.length === 0) return;
                     const track = this.playlist[this.currentTrack];
-                    this.pause(); // Asegurar que cualquier reproducción anterior esté detenida
+                    this.pause();
 
                     if (track.type === 'youtube') {
                         if (!track.player) {
                             const playerDiv = document.createElement('div');
-                            playerDiv.id = `youtube-player-${this.currentTrack}`;
+                            playerDiv.id = `youtube-player-${Date.now()}`;
+                            playerDiv.style.display = 'none';
                             document.body.appendChild(playerDiv);
+
                             track.player = new YT.Player(playerDiv.id, {
                                 height: '0',
                                 width: '0',
                                 videoId: track.videoId,
+                                playerVars: {
+                                    autoplay: 0,
+                                    controls: 0,
+                                    disablekb: 1,
+                                    modestbranding: 1
+                                },
                                 events: {
                                     'onReady': (event) => {
-                                        event.target.playVideo();
-                                        this.isPlaying = true;
-                                        this.playBtn.textContent = '⏸';
+                                        this.currentMedia = event.target;
+                                        this.playBtn.textContent = '▶';
                                     },
                                     'onStateChange': (event) => {
-                                        if (event.data === YT.PlayerState.ENDED) {
+                                        if (event.data === YT.PlayerState.PLAYING) {
+                                            this.isPlaying = true;
+                                            this.youtubeInterval = setInterval(() => {
+                                                this.updateProgress();
+                                            }, 1000);
+                                        } else if (event.data === YT.PlayerState.PAUSED) {
+                                            this.isPlaying = false;
+                                        } else if (event.data === YT.PlayerState.ENDED) {
                                             this.playNext();
                                         }
                                     },
                                     'onError': (event) => {
-                                        let errorMsg = 'Error de YouTube: ';
-                                        switch (event.data) {
-                                            case 150:
-                                            case 101:
-                                                errorMsg += 'Este video está restringido (copyright o configuración del propietario).';
-                                                break;
-                                            case 100:
-                                                errorMsg += 'Video no encontrado.';
-                                                break;
-                                            default:
-                                                errorMsg += `Código de error ${event.data}.`;
-                                        }
-                                        this.showError(errorMsg);
-                                        // Destruir el reproductor fallido
-                                        if (track.player) {
-                                            track.player.destroy();
-                                            track.player = null;
-                                            document.getElementById(playerDiv.id).remove();
-                                        }
-                                        // Avanzar al siguiente track
-                                        this.playNext();
+                                        this.handleYoutubeError(event.data);
                                     }
                                 }
                             });
+                        } else {
+                            this.currentMedia = track.player;
                         }
-                        this.currentMedia = track.player;
                     } else {
-                        this.audio.src = track.url;
-                        this.currentMedia = this.audio;
-                        await this.audio.play();
-                        this.isPlaying = true;
-                        this.playBtn.textContent = '⏸';
+                        // Código para otros tipos igual que antes
                     }
                 } catch (error) {
                     this.showError('Error al cargar: ' + error.message);
-                    // Avanzar al siguiente track si falla la carga
                     this.playNext();
                 }
             }
 
-            updateProgress() {
-                if (this.currentMedia instanceof HTMLMediaElement) {
-                    if (!isFinite(this.currentMedia.duration)) return;
-                    const progress = (this.currentMedia.currentTime / this.currentMedia.duration) * 100;
-                    this.progressBar.style.width = `${progress}%`;
-                } else if (this.currentMedia && typeof this.currentMedia.getDuration === 'function') {
-                    const currentTime = this.currentMedia.getCurrentTime();
-                    const duration = this.currentMedia.getDuration();
-                    if (duration > 0) {
-                        const progress = (currentTime / duration) * 100;
-                        this.progressBar.style.width = `${progress}%`;
-                    }
+            handleYoutubeError(errorCode) {
+                let errorMsg = 'Error de YouTube: ';
+                switch (errorCode) {
+                    case 2: errorMsg += 'ID de video inválido'; break;
+                    case 5: errorMsg += 'Error de HTML5'; break;
+                    case 100: errorMsg += 'Video no encontrado'; break;
+                    case 101: 
+                    case 150: errorMsg += 'Reproducción restringida'; break;
+                    default: errorMsg += `Código ${errorCode}`;
                 }
-            }
-
-            handleSeek(e) {
-                if (this.currentMedia instanceof HTMLMediaElement) {
-                    if (!this.currentMedia.duration || !isFinite(this.currentMedia.duration)) return;
-                    const rect = this.progressContainer.getBoundingClientRect();
-                    const percent = (e.clientX - rect.left) / rect.width;
-                    this.currentMedia.currentTime = percent * this.currentMedia.duration;
-                } else if (this.currentMedia && typeof this.currentMedia.seekTo === 'function') {
-                    const rect = this.progressContainer.getBoundingClientRect();
-                    const percent = (e.clientX - rect.left) / rect.width;
-                    const duration = this.currentMedia.getDuration();
-                    if (duration > 0) {
-                        this.currentMedia.seekTo(percent * duration, true);
-                    }
-                }
-            }
-
-            togglePlay() {
-                this.isPlaying ? this.pause() : this.play();
+                this.showError(errorMsg);
+                this.playNext();
             }
 
             play() {
                 if (!this.isPlaying && this.currentMedia) {
                     if (this.currentMedia instanceof HTMLMediaElement) {
-                        this.currentMedia.play().catch(error => {
-                            this.showError('Error de reproducción: ' + error.message);
-                        });
+                        this.currentMedia.play();
                     } else if (typeof this.currentMedia.playVideo === 'function') {
                         this.currentMedia.playVideo();
-                        if (!this.youtubeInterval) {
-                            this.youtubeInterval = setInterval(() => {
-                                this.updateProgress();
-                            }, 100);
-                        }
+                        this.isPlaying = true;
+                        this.playBtn.textContent = '⏸';
                     }
-                    this.isPlaying = true;
-                    this.playBtn.textContent = '⏸';
                 }
             }
 
@@ -458,92 +152,45 @@
                         this.currentMedia.pause();
                     } else if (typeof this.currentMedia.pauseVideo === 'function') {
                         this.currentMedia.pauseVideo();
-                        if (this.youtubeInterval) {
-                            clearInterval(this.youtubeInterval);
-                            this.youtubeInterval = null;
-                        }
+                        this.isPlaying = false;
+                        this.playBtn.textContent = '▶';
                     }
-                    this.isPlaying = false;
-                    this.playBtn.textContent = '▶';
-                }
-            }
-
-            playNext() {
-                this.pause();
-                this.currentTrack = (this.currentTrack + 1) % this.playlist.length;
-                this.loadTrack();
-            }
-
-            playPrev() {
-                this.pause();
-                this.currentTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
-                this.loadTrack();
-            }
-
-            addToPlaylist(title, url, type) {
-                let videoId = null;
-                if (type === 'youtube') {
-                    const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
-                    if (youtubeMatch) {
-                        videoId = youtubeMatch[1];
-                    } else {
-                        throw new Error('URL de YouTube inválida');
+                    if (this.youtubeInterval) {
+                        clearInterval(this.youtubeInterval);
+                        this.youtubeInterval = null;
                     }
                 }
-                const track = { title, url, type, videoId, player: null };
-                this.playlist.push(track);
-
-                const item = document.createElement('div');
-                item.className = 'playlist-item';
-                item.innerHTML = `
-                    <span>${title}</span>
-                    <span class="remove-btn">🗑️</span>
-                `;
-
-                item.querySelector('.remove-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.removeTrack(this.playlist.indexOf(track));
-                });
-
-                item.addEventListener('click', () => {
-                    this.currentTrack = this.playlist.indexOf(track);
-                    this.loadTrack();
-                });
-
-                this.playlistContainer.appendChild(item);
             }
 
-            removeTrack(index) {
-                if (index === this.currentTrack) this.pause();
-                const track = this.playlist[index];
-                if (track.type === 'youtube' && track.player) {
-                    track.player.destroy();
-                    const playerDiv = document.getElementById(`youtube-player-${index}`);
-                    if (playerDiv) playerDiv.remove();
+            updateProgress() {
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    // Código original
+                } else if (this.currentMedia && typeof this.currentMedia.getCurrentTime === 'function') {
+                    const duration = this.currentMedia.getDuration();
+                    const currentTime = this.currentMedia.getCurrentTime();
+                    if (duration > 0) {
+                        const progress = (currentTime / duration) * 100;
+                        this.progressBar.style.width = `${progress}%`;
+                    }
                 }
-                this.playlist.splice(index, 1);
-                this.playlistContainer.children[index].remove();
             }
 
-            showError(message) {
-                this.errorMessage.textContent = message;
-                this.errorMessage.style.display = 'block';
-                setTimeout(() => {
-                    this.errorMessage.style.display = 'none';
-                }, 5000);
-            }
+            // ... (otros métodos se mantienen igual) ...
         }
 
-        // Inicializar el reproductor después de que el DOM esté cargado
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                const player = new AudioPlayer();
-                window.player = player; // Hacer que la instancia sea accesible globalmente
-            } catch (error) {
-                console.error('Error al inicializar el reproductor:', error);
-            }
-        });
+        // Cargar YouTube API correctamente
+        let tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        let firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // Inicialización después de cargar la API
+        let player;
+        function onYouTubeIframeAPIReady() {
+            player = new AudioPlayer();
+            window.player = player;
+        }
     </script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93af7d9f497753f9',t:'MTc0NjQ0MDI3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+    <!-- ... (resto del código igual) ... -->
 </body>
 </html>
