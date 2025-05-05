@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2E2E2E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Media Player</title>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <style>
+        :root {
+            --primary: #00ff88;
+            --background: #1a1a1a;
+            --surface: #2d2d2d;
+            --text: #ffffff;
+            --error: #ff4444;
+            --gradient: linear-gradient(135deg, #00ff88 0%, #00a3ff 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .player-container {
+            background: var(--surface);
+            width: 95%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .player-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .player-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin: 1.5rem 0;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient);
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 3px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        #playBtn {
+            background: var(--gradient);
+            color: #000;
+            box-shadow: 0 8px 24px rgba(0,255,136,0.3);
+        }
+
+        .load-btn {
+            background: var(--gradient);
+            color: #000;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: block;
+            margin: 1rem auto;
+            width: fit-content;
+        }
+
+        .load-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,255,136,0.3);
+        }
+
+        #urlInput {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 0.8rem;
+            border-radius: 50px;
+            color: white;
+            width: 70%;
+            outline: none;
+        }
+
+        .playlist {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+            margin-top: 1.5rem;
+        }
+
+        .playlist-item {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            margin: 0.5rem 0;
+        }
+
+        .playlist-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .playlist-item.active {
+            background: rgba(0,255,157,0.1);
+            color: var(--primary);
+        }
+
+        .error-message {
+            color: var(--error);
+            text-align: center;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: none;
+            background: rgba(255,68,68,0.1);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="player-header">
+            <h1 class="player-title">Neon Player</h1>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <input type="text" id="urlInput" placeholder="Pega URL de audio/video">
+                <button class="load-btn" onclick="player.handleUrl()">
+                    🎵 Cargar desde URL
+                </button>
+            </div>
+            <button class="load-btn" onclick="document.getElementById('fileInput').click()">
+                📁 Cargar Archivo
+            </button>
+        </div>
+
+        <input type="file" id="fileInput" accept="audio/*,video/*" multiple hidden>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="prevBtn">⏮</button>
+            <button class="control-btn" id="playBtn">▶</button>
+            <button class="control-btn" id="nextBtn">⏭</button>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="playlist" id="playlist"></div>
+    </div>
+
+    <script>
+        class AudioPlayer {
+            constructor() {
+                this.audio = new Audio();
+                this.playlist = [];
+                this.currentTrack = 0;
+                this.isPlaying = false;
+                this.currentMedia = null;
+                this.youtubeInterval = null;
+
+                // Elementos del DOM
+                this.playBtn = document.getElementById('playBtn');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.playlistContainer = document.getElementById('playlist');
+                this.fileInput}
+                this.errorMessage = document.getElementById('errorMessage');
+
+                this.initialize();
+            }
+
+            initialize() {
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.playBtn.addEventListener('click', () => this.togglePlay());
+                this.progressContainer.addEventListener('click', (e) => this.handleSeek(e));
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                this.audio.addEventListener('timeupdate', () => this.updateProgress());
+                this.audio.addEventListener('ended', () => this.playNext());
+                document.getElementById('prevBtn').addEventListener('click', () => this.playPrev());
+                document.getElementById('nextBtn').addEventListener('click', () => this.playNext());
+            }
+
+            async handleFileSelect(event) {
+                try {
+                    const files = Array.from(event.target.files);
+                    for (const file of files) {
+                        if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+                            const url = URL.createObjectURL(file);
+                            await this.validateMediaFile(url);
+                            this.addToPlaylist(file.name, url);
+                        }
+                    }
+                    if (this.playlist.length > 0) this.loadTrack();
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
+
+            async handleUrl() {
+                try {
+                    const url = document.getElementById('urlInput').value;
+                    if (!url) return;
+                    
+                    const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+                    if (youtubeMatch) {
+                        const title = url.split('/').pop().split('#')[0].split('?')[0];
+                        this.addToPlaylist(title, url);
+                    } else {
+                        const extension = url.split('.').pop().split(/#|\?/)[0];
+                        if (!['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(extension.toLowerCase())) {
+                            throw new Error('Formato no compatible');
+                        }
+                        await this.validateMediaFile(url);
+                        const title = url.split('/').pop().split('#')[0].split('?')[0];
+                        this.addToPlaylist(title, url);
+                    }
+                    
+                    if (this.playlist.length > 0) this.loadTrack();
+                    document.getElementById('urlInput').value = '';
+                } catch (error) {
+                    this.showError(error.message);
+                }
+            }
+
+            async validateMediaFile(url) {
+                return new Promise((resolve, reject) => {
+                    const media = url.match(/\.(mp4|webm)$/i) ? document.createElement('video') : new Audio();
+                    media.src = url;
+                    media.addEventListener('canplaythrough', () => resolve(), { once: true });
+                    media.addEventListener('error', (e) => {
+                        reject(new Error(`Error de carga: ${e.target.error.message}`));
+                    }, { once: true });
+                    media.load();
+                });
+            }
+
+            async loadTrack() {
+                try {
+                    const track = this.playlist[this.currentTrack];
+                    if (track.type === 'youtube') {
+                        if (!track.player) {
+                            const playerDiv = document.createElement('div');
+                            playerDiv.id = `youtube-player-${this.currentTrack}`;
+                            document.body.appendChild(playerDiv);
+                            track.player = new YT.Player(playerDiv.id, {
+                                height: '0',
+                                width: '0',
+                                videoId: track.videoId,
+                                events: {
+                                    'onReady': (event) => {
+                                        event.target.playVideo();
+                                        this.isPlaying = true;
+                                        this.playBtn.textContent = '⏸';
+                                    },
+                                    'onStateChange': (event) => {
+                                        if (event.data == YT.PlayerState.ENDED) {
+                                            this.playNext();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        this.currentMedia = track.player;
+                    } else {
+                        let isVideo = track.type === 'video';
+                        if (isVideo && !document.getElementById('videoElement')) {
+                            this.audio.pause();
+                            const video = document.createElement('video');
+                            video.id = 'videoElement';
+                            video.style.display = 'none';
+                            document.body.appendChild(video);
+                            this.audio = video;
+                        }
+                        this.audio.src = track.url;
+                        this.currentMedia = this.audio;
+                        await this.audio.play();
+                        this.isPlaying = true;
+                        this.playBtn.textContent = '⏸';
+                    }
+                } catch (error) {
+                    this.showError('Error al cargar: ' + error.message);
+                }
+            }
+
+            updateProgress() {
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    if (!isFinite(this.currentMedia.duration)) return;
+                    const progress = (this.currentMedia.currentTime / this.currentMedia.duration) * 100;
+                    this.progressBar.style.width = `${progress}%`;
+                } else if (this.currentMedia && typeof this.currentMedia.getDuration === 'function') {
+                    const currentTime = this.currentMedia.getCurrentTime();
+                    const duration = this.currentMedia.getDuration();
+                    if (duration > 0) {
+                        const progress = (currentTime / duration) * 100;
+                        this.progressBar.style.width = `${progress}%`;
+                    }
+                }
+            }
+
+            handleSeek(e) {
+                if (this.currentMedia instanceof HTMLMediaElement) {
+                    if (!this.currentMedia.duration || !isFinite(this.currentMedia.duration)) return;
+                    const rect = this.progressContainer.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.currentMedia.currentTime = percent * this.currentMedia.duration;
+                } else if (this.currentMedia && typeof this.currentMedia.seekTo === 'function') {
+                    const rect = this.progressContainer.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    const duration = this.currentMedia.getDuration();
+                    if (duration > 0) {
+                        this.currentMedia.seekTo(percent * duration, true);
+                    }
+                }
+            }
+
+            togglePlay() {
+                this.isPlaying ? this.pause() : this.play();
+            }
+
+            play() {
+                if (!this.isPlaying && this.currentMedia) {
+                    if (this.currentMedia instanceof HTMLMediaElement) {
+                        this.currentMedia.play();
+                    } else if (typeof this.currentMedia.playVideo === 'function') {
+                        this.currentMedia.playVideo();
+                        if (!this.youtubeInterval) {
+                            this.youtubeInterval = setInterval(() => {
+                                this.updateProgress();
+                            }, 100);
+                        }
+                    }
+                    this.isPlaying = true;
+                    this.playBtn.textContent = '⏸';
+                }
+            }
+
+            pause() {
+                if (this.isPlaying && this.currentMedia) {
+                    if (this.currentMedia instanceof HTMLMediaElement) {
+                        this.currentMedia.pause();
+                    } else if (typeof this.currentMedia.pauseVideo === 'function') {
+                        this.currentMedia.pauseVideo();
+                        if (this.youtubeInterval) {
+                            clearInterval(this.youtubeInterval);
+                            this.youtubeInterval = null;
+                        }
+                    }
+                    this.isPlaying = false;
+                    this.playBtn.textContent = '▶';
+                }
+            }
+
+            playNext() {
+                this.pause();
+                this.currentTrack = (this.currentTrack + 1) % this.playlist.length;
+                this.loadTrack();
+            }
+
+            playPrev() {
+                this.pause();
+                this.currentTrack = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
+                this.loadTrack();
+            }
+
+            addToPlaylist(title, url) {
+                let type = 'audio';
+                let videoId = null;
+                const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+                if (youtubeMatch) {
+                    type = 'youtube';
+                    videoId = youtubeMatch[1];
+                } else if (url.match(/\.(mp4|webm)/i)) {
+                    type = 'video';
+                }
+
+                const track = { title, url, type, videoId, player: null };
+                this.playlist.push(track);
+
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                item.innerHTML = `
+                    <span>${title}</span>
+                    <span class="remove-btn">🗑️</span>
+                `;
+
+                item.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeTrack(this.playlist.indexOf(track));
+                });
+
+                item.addEventListener('click', () => {
+                    this.currentTrack = this.playlist.indexOf(track);
+                    this.loadTrack();
+                });
+
+                this.playlistContainer.appendChild(item);
+            }
+
+            removeTrack(index) {
+                if (index === this.currentTrack) this.pause();
+                this.playlist.splice(index, 1);
+                this.playlistContainer.children[index].remove();
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    this.errorMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Inicializar el reproductor
+        const player = new AudioPlayer();
+    </script>
+</body>
+</html>
